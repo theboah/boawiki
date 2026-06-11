@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: boathehellobigtoppumpum121
+      POSTGRES_USER: boah
+      POSTGRES_DB: boawiki
+
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ./backend/Dockerfile
+    restart: always
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - wiki_data:/app/wiki_data
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ./frontend/Dockerfile
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+      - redis
+
+    
+
+volumes:
+  db_data:
+  wiki_data:
