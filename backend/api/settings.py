@@ -1,16 +1,22 @@
-from flask import Blueprint, jsonify, request 
-from models.settings import Settings
+from flask import jsonify, request
+from flask_smorest import Blueprint
+from models import db
+from models.settings import Settings, SettingsSchema
+from models.user import user_exists
 from flask_jwt_extended import jwt_required, get_jwt_identity
-api = Blueprint('api', __name__, url_prefix='/api/v1/settings')
+api = Blueprint('settings', 'settings', url_prefix='/settings')
 
 
 #get settings
 @api.route('/get', methods=['GET'])
 @jwt_required()
+@api.response(200, SettingsSchema)
 def get_settings():
     user_id = get_jwt_identity()
+    if not user_exists(user_id):
+        return jsonify({"error": "User not found"}), 404
     
-    from models.settings import Settings
+    
     settings = Settings.query.filter_by(user_id=user_id).first()
     
     if not settings:
@@ -27,12 +33,13 @@ def get_settings():
 #update settings
 @api.route('/update', methods=['POST'])
 @jwt_required()
+@api.response(200, SettingsSchema)
 def update_settings():
     user_id = get_jwt_identity()
-    data = request.get_json()
+    if not user_exists(user_id):
+        return jsonify({"error": "User not found"}), 404
     
-    from models import db
-    from models.settings import Settings
+    data = request.get_json()
     
     settings = Settings.query.filter_by(user_id=user_id).first()
     if not settings:
@@ -55,12 +62,13 @@ def update_settings():
 
 #reset settings
 @api.route('/reset', methods=['POST'])
+@api.response(200, SettingsSchema)
 @jwt_required()
 def reset_settings():
     user_id = get_jwt_identity()
+    if not user_exists(user_id):
+        return jsonify({"error": "User not found"}), 404
     
-    from models import db
-    from models.settings import Settings
     
     settings = Settings.query.filter_by(user_id=user_id).first()
     if not settings:

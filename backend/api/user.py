@@ -1,19 +1,22 @@
-from flask import Blueprint, jsonify, request 
-from models.user import User
+from flask import jsonify, request
+from flask_smorest import Blueprint
+from models import db
+from models.user import Users, UserSchema, user_exists
 from flask_jwt_extended import jwt_required, get_jwt_identity
-api = Blueprint('api', __name__, url_prefix='/api/v1/user')
+api = Blueprint('user', 'user', url_prefix='/user')
 
+#Need to do sign up correctly where we can use auth provider and then check email against permitted emails
+#sign up manually aswell
+#need to do login and logout routes potentially with sessions?
 
 @api.route('/create', methods=['POST'])
 @jwt_required()
+@api.response(200, UserSchema)
 def create_user():
     data = request.get_json()
     
     if not data or 'name' not in data or 'email' not in data:
         return jsonify({"error": "Name and email are required"}), 400
-    
-    from models import db
-    from models.user import Users
     
     # Check if user already exists
     if Users.query.filter_by(email=data['email']).first():
@@ -44,17 +47,16 @@ def create_user():
 
 @api.route('/delete', methods=['POST'])
 @jwt_required()
+@api.response(200, UserSchema)
 def delete_user():
     user_id = get_jwt_identity()
     
-    from models import db
-    from models.user import Users
-    
     user = Users.query.get(user_id)
-    if not user:
+    if not user_exists(user_id):
         return jsonify({"error": "User not found"}), 404
         
     db.session.delete(user)
     db.session.commit()
     
     return jsonify({"message": "User deleted"}), 200
+

@@ -1,4 +1,5 @@
 from models import db
+from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 
 #id #pimary key
 #from_article_id
@@ -22,3 +23,8 @@ class Links(db.Model):
 
     def __repr__(self) -> str:
         return f"id={self.id!r}, from_article_id={self.from_article_id!r}, to_article_id={self.to_article_id!r}, type_string={self.type_string!r})"
+    
+class LinksSchema(SQLAlchemyAutoSchema):
+    class Meta:
+        model = Links
+        load_instance = True

@@ -1,5 +1,5 @@
 from models import db
-
+from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 class Settings(db.Model):
     __tablename__ = "settings"
     
@@ -9,3 +9,8 @@ class Settings(db.Model):
     font: db.Column = db.Column(db.String(255))
     user_colour: db.Column = db.Column(db.String(255))
     dark_mode: db.Column = db.Column(db.Boolean, default=False)
+    
+class SettingsSchema(SQLAlchemyAutoSchema):
+    class Meta:
+        model = Settings
+        load_instance = True
