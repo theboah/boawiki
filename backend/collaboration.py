@@ -1,6 +1,7 @@
 import redis
 from models.article import Articles
-
+from flask_socketio import SocketIO
+socketio = SocketIO()
 class Collab:
     def __init__(self, article_id, users=[]):
         self.article_id = article_id

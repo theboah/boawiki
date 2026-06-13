@@ -2,14 +2,14 @@ import os
 
 from api import article,user,link,settings
 from models import db
+from collaboration import socketio
 
 from flask import Flask, app 
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager
-from flask_socketio import SocketIO
 from flask_smorest import Api
 import dotenv
-import json
+
 
 #we want to abstract websocket code to the collaboration.py file
 #We want to check if running in dev then log for websockets etc
@@ -28,7 +28,7 @@ def create_app():
     #Adding Flask extensions
     jwt = JWTManager()
     bcrypt = Bcrypt()
-    socketio = SocketIO()
+    
     
     db.init_app(app)
     jwt.init_app(app)
