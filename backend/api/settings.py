@@ -10,7 +10,7 @@ api = Blueprint('settings', 'settings', url_prefix='/settings')
 #get settings
 @api.route('/get', methods=['GET'])
 @jwt_required()
-@api.response(200, SettingsSchema)
+@api.response(200, SettingsSchema(only=['background_colour', 'accent_colour', 'font', 'user_colour', 'dark_mode']))
 def get_settings():
     user_id = get_jwt_identity()
     if not user_exists(user_id):
@@ -21,19 +21,14 @@ def get_settings():
     
     if not settings:
         return jsonify({"error": "Settings not found"}), 404
-        
-    return jsonify({
-        "background_colour": settings.background_colour,
-        "accent_colour": settings.accent_colour,
-        "font": settings.font,
-        "user_colour": settings.user_colour,
-        "dark_mode": settings.dark_mode
-    }), 200
+    
+    return jsonify(SettingsSchema().dump(settings)), 200
 
 #update settings
 @api.route('/update', methods=['POST'])
 @jwt_required()
-@api.response(200, SettingsSchema)
+@api.response(200, SettingsSchema(only=['background_colour', 'accent_colour', 'font', 'user_colour', 'dark_mode']))
+@api.arguments(SettingsSchema(only=['background_colour', 'accent_colour', 'font', 'user_colour', 'dark_mode']),required=True)
 def update_settings():
     user_id = get_jwt_identity()
     if not user_exists(user_id):
@@ -62,7 +57,7 @@ def update_settings():
 
 #reset settings
 @api.route('/reset', methods=['POST'])
-@api.response(200, SettingsSchema)
+@api.response(200, SettingsSchema(only=['background_colour', 'accent_colour', 'font', 'user_colour', 'dark_mode']))
 @jwt_required()
 def reset_settings():
     user_id = get_jwt_identity()

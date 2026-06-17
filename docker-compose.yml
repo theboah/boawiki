@@ -3,12 +3,12 @@ services:
     image: postgres:16
     restart: always
     ports:
-      - "5432:5432"
+      - "6432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     environment:
-      POSTGRES_PASSWORD: boathehellobigtoppumpum121
       POSTGRES_USER: boah
+      POSTGRES_PASSWORD: pumpum12boa
       POSTGRES_DB: boawiki
 
   redis:
@@ -23,7 +23,7 @@ services:
       dockerfile: ./backend/Dockerfile
     restart: always
     ports:
-      - "8000:8000"
+      - "5000:5000"
     depends_on:
       - postgres
       - redis

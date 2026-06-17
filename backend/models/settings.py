@@ -14,3 +14,4 @@ class SettingsSchema(SQLAlchemyAutoSchema):
     class Meta:
         model = Settings
         load_instance = True
+        include_fk = True

@@ -2,6 +2,7 @@
 
 # Implement front end
 
+
 # First
 
 Event handelling websockets for cursors showing on other editors scren and changes occuring.

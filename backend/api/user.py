@@ -1,62 +1,79 @@
-from flask import jsonify, request
+import bcrypt
+import os
+from flask import jsonify, request, current_app
 from flask_smorest import Blueprint
+from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
+
 from models import db
-from models.user import Users, UserSchema, user_exists
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from models.user import UserSignUpSchema, Users, UserLoginSchema, user_exists
+from models.whitelist import _is_email_whitelisted
+
 api = Blueprint('user', 'user', url_prefix='/user')
 
-#Need to do sign up correctly where we can use auth provider and then check email against permitted emails
-#sign up manually aswell
-#need to do login and logout routes potentially with sessions?
 
-@api.route('/create', methods=['POST'])
-@jwt_required()
-@api.response(200, UserSchema)
-def create_user():
+@api.route('/methods', methods=['GET']) 
+def methods_available():
+    if current_app.config['TESTING']:
+        return jsonify({"available": "email"}), 200
+    if current_app.config.get('AUTH_URL') is not None or "":
+        return jsonify({"available": "oauth2"}), 200
+    return jsonify({"available": "none"}), 200
+
+# EMAIL
+
+@api.route('/signup', methods=['POST'])
+@api.arguments(UserSignUpSchema,required=True)
+def user_sign_up_email():
     data = request.get_json()
+    if not data or 'name' not in data or 'email' not in data or 'password' not in data:
+        return jsonify({"error": "Name, email, and password are required"}), 400
     
-    if not data or 'name' not in data or 'email' not in data:
-        return jsonify({"error": "Name and email are required"}), 400
+    if not _is_email_whitelisted(data['email']):
+        return jsonify({"error": "Email is not whitelisted"}), 403
     
-    # Check if user already exists
-    if Users.query.filter_by(email=data['email']).first():
-        return jsonify({"error": "User already exists"}), 400
-        
+    if Users.query.filter_by(email=data['email']).first() or Users.query.filter_by(name=data['name']).first():
+        return jsonify({"error": "Prohibited action"}), 400
+    
+    if data['user_type'] not in ['player', 'dm']:
+        return jsonify({"error": "Invalid user type"}), 400
+    
+    
+    passtext = data['password']
+    hashed_password = bcrypt.hashpw(passtext.encode('utf-8'), bcrypt.gensalt())
+    
     new_user = Users(
         name=data['name'],
         email=data['email'],
-        avatar_image=data.get('avatar_image'),
-        user_type=data.get('user_type', 'user'),
-        auth_provider=data.get('auth_provider', 'local')
+        user_type=data['user_type'],
+        password=hashed_password
     )
-    
-    try:
-        db.session.add(new_user)
-        db.session.commit()
-        
-        # Create default settings for the new user
-        from models.settings import Settings
-        default_settings = Settings(user_id=new_user.id)
-        db.session.add(default_settings)
-        db.session.commit()
-        
-        return jsonify({"message": "User created", "id": new_user.id}), 201
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 400
-
-@api.route('/delete', methods=['POST'])
-@jwt_required()
-@api.response(200, UserSchema)
-def delete_user():
-    user_id = get_jwt_identity()
-    
-    user = Users.query.get(user_id)
-    if not user_exists(user_id):
-        return jsonify({"error": "User not found"}), 404
-        
-    db.session.delete(user)
+    db.session.add(new_user)
     db.session.commit()
+    return jsonify({"message": "User created"}), 201
+
+
+#Need to restrict login route with rate limit for ip
+@api.route('/login', methods=['POST'])
+@api.arguments(UserLoginSchema,required=True)
+def user_login_email():
+    data = request.get_json()
+    if not data or 'name' not in data or 'email' not in data or 'password' not in data:
+        return jsonify({"error": "Name, email, and password are required"}), 400
     
-    return jsonify({"message": "User deleted"}), 200
+    if not _is_email_whitelisted(data['email']):
+        return jsonify({"error": "Email is not whitelisted"}), 403
+    
+    user = Users.query.filter_by(email=data['email']).first()
+    if not user:
+        return jsonify({"error": "Authentication failed"}), 403
+        
+    if bcrypt.checkpw(data['password'].encode('utf-8'), user.password):
+        access_token = create_access_token(identity=user.id)
+        return jsonify({"access_token": access_token, "user_id": user.id}), 200
+    
+    return jsonify({"error": "Authentication failed"}), 403
+
+
+# OAUTH2
+
 
